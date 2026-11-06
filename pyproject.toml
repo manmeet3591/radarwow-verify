@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "radarwow-verify"
-version = "0.0.1"
+version = "0.1.0"
 description = "radar-wow: Verification"
 readme = "README.md"
 license = {text = "MIT"}
