@@ -2,7 +2,7 @@
 
 **radar-wow: Verification.** Matching radar estimates to references (MRMS, gauges), scores stratified by range and hour.
 
-Part of [radar-wow](https://github.com/radar-wow), a set of repos that together build a radar QPE system that works for S, C and X band radars.
+Part of [radar-wow](https://github.com/manmeet3591/radar-wow), a set of repos that together build a radar QPE system that works for S, C and X band radars.
 Every algorithm is one class implementing one paper, with the same interface: it takes an xradar sweep or volume with canonical moment names, declares the bands and moments it needs, and records provenance.
 
 ## Sub-components
@@ -19,18 +19,23 @@ Every algorithm is one class implementing one paper, with the same interface: it
 ## Install
 
 ```bash
-pip install git+https://github.com/radar-wow/radarwow-core git+https://github.com/radar-wow/radarwow-verify
+pip install git+https://github.com/manmeet3591/radarwow-core git+https://github.com/manmeet3591/radarwow-verify
 ```
 
 ## Notebooks (free data, S / C / X band)
 
-- [`notebooks/01_ktlx_20220505_vs_mrms.ipynb`](notebooks/01_ktlx_20220505_vs_mrms.ipynb): open in Colab via `https://colab.research.google.com/github/radar-wow/radarwow-verify/blob/main/notebooks/01_ktlx_20220505_vs_mrms.ipynb`
+- [`notebooks/01_ktlx_20220505_vs_mrms.ipynb`](notebooks/01_ktlx_20220505_vs_mrms.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/01_ktlx_20220505_vs_mrms.ipynb`
+- [`notebooks/02_ktlx_20220505_vpr.ipynb`](notebooks/02_ktlx_20220505_vpr.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/02_ktlx_20220505_vpr.ipynb`
 
 ## Results
 
 ![01_melting_layer](docs/figures/01_melting_layer.png)
 ![02_maps_08](docs/figures/02_maps_08.png)
 ![03_scatter](docs/figures/03_scatter.png)
+![04_vpr_profiles](docs/figures/04_vpr_profiles.png)
+![05_vpr_fit_timeseries](docs/figures/05_vpr_fit_timeseries.png)
+![06_vpr_bias_by_range](docs/figures/06_vpr_bias_by_range.png)
+![07_vpr_maps](docs/figures/07_vpr_maps.png)
 
 ## Usage
 
