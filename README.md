@@ -28,6 +28,7 @@ pip install git+https://github.com/manmeet3591/radarwow-core git+https://github.
 - [`notebooks/02_ktlx_20220505_vpr.ipynb`](notebooks/02_ktlx_20220505_vpr.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/02_ktlx_20220505_vpr.ipynb`
 - [`notebooks/03_ktlx_20220505_advection.ipynb`](notebooks/03_ktlx_20220505_advection.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/03_ktlx_20220505_advection.ipynb`
 - [`notebooks/04_kdax_20211024_blockage.ipynb`](notebooks/04_kdax_20211024_blockage.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/04_kdax_20211024_blockage.ipynb`
+- [`notebooks/05_adaptive_alpha.ipynb`](notebooks/05_adaptive_alpha.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/05_adaptive_alpha.ipynb`
 
 ## Results
 
@@ -43,6 +44,8 @@ pip install git+https://github.com/manmeet3591/radarwow-core git+https://github.
 ![10_kdax_blockage](docs/figures/10_kdax_blockage.png)
 ![11_kdax_maps_13](docs/figures/11_kdax_maps_13.png)
 ![12_kdax_bias_by_blockage](docs/figures/12_kdax_bias_by_blockage.png)
+![13_adaptive_alpha_bias](docs/figures/13_adaptive_alpha_bias.png)
+![14_adaptive_alpha_maps_kdax](docs/figures/14_adaptive_alpha_maps_kdax.png)
 
 ## Usage
 
