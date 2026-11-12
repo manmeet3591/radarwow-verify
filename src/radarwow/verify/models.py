@@ -51,3 +51,24 @@ def hrrr_freezing_level(time, lat, lon, cache_dir: str, radius_km: float = 0.0) 
     if radius_km > 0:
         return float(np.nanmedian(da.values[d_km <= radius_km]))
     return float(da.values[np.unravel_index(np.argmin(d_km), d_km.shape)])
+
+
+def t2m_freezing_level(time, lat, lon, cache_dir: str, lapse_k_per_km: float = 6.5) -> float:
+    """Rough 0 C height (m MSL) outside the HRRR domain: ground height + 2 m temperature / lapse rate, from the
+    ERA5-based Open-Meteo archive (free, no key). A standard-atmosphere assumption; use only as a prior for the
+    radar's own melting-layer detection."""
+    import json
+    import urllib.request
+
+    t = pd.Timestamp(time)
+    os.makedirs(cache_dir, exist_ok=True)
+    local = os.path.join(cache_dir, f"openmeteo_t2m_{lat:.2f}_{lon:.2f}_{t:%Y%m%d}.json")
+    if not os.path.exists(local):
+        url = (f"https://archive-api.open-meteo.com/v1/archive?latitude={lat:.3f}&longitude={lon:.3f}"
+               f"&start_date={t:%Y-%m-%d}&end_date={t:%Y-%m-%d}&hourly=temperature_2m")
+        with open(local, "w") as f:
+            f.write(urllib.request.urlopen(url, timeout=60).read().decode())
+    d = json.load(open(local))
+    temps = d["hourly"]["temperature_2m"]
+    t2m = float(temps[min(t.hour, len(temps) - 1)])
+    return float(d.get("elevation", 0.0)) + max(t2m, 0.0) / lapse_k_per_km * 1e3

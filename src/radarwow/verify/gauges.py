@@ -130,3 +130,39 @@ def gross_error_qc(g: pd.DataFrame, radar_col: str, factor: float = 3.0, min_dif
     drop = nbad[nbad >= max_bad_hours].index
     g.loc[g["station"].isin(drop) & (g["qc"] == "ok"), "qc"] = "station with repeated gross errors"
     return g
+
+
+def fetch_fmi(lat0: float, lon0: float, radius_km: float, start, end, cache_dir: str) -> pd.DataFrame:
+    """Hourly gauge rain (mm) from the Finnish Meteorological Institute open data WFS (no key), same columns as
+    `fetch_hads`. FMI's PRA_PT1H_ACC at time T is the rain of the hour ending at T; ``time`` is the hour's start.
+    Stations are identified by position (the simple WFS format carries no station id)."""
+    import re
+
+    start, end = pd.Timestamp(start), pd.Timestamp(end)
+    os.makedirs(cache_dir, exist_ok=True)
+    local = os.path.join(cache_dir, f"fmi_{lat0:.2f}_{lon0:.2f}_{radius_km:.0f}_{start:%Y%m%d%H}_{end:%Y%m%d%H}.csv")
+    if os.path.exists(local):
+        return pd.read_csv(local, parse_dates=["time"])
+    dlat = radius_km / 111.2
+    dlon = radius_km / (111.2 * math.cos(math.radians(lat0)))
+    url = ("https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature"
+           "&storedquery_id=fmi::observations::weather::hourly::simple&parameters=PRA_PT1H_ACC"
+           f"&bbox={lon0 - dlon:.3f},{lat0 - dlat:.3f},{lon0 + dlon:.3f},{lat0 + dlat:.3f}"
+           f"&starttime={start + pd.Timedelta(hours=1):%Y-%m-%dT%H:%M:%SZ}&endtime={end:%Y-%m-%dT%H:%M:%SZ}")
+    txt = _get(url, pause_s=1.0)
+    rows = []
+    for pos, tm, v in re.findall(r"<gml:pos>([^<]*)</gml:pos>.*?<BsWfs:Time>([^<]*)</BsWfs:Time>.*?<BsWfs:ParameterValue>([^<]*)</", txt, re.S):
+        la, lo = map(float, pos.split()[:2])
+        try:
+            val = float(v)
+        except ValueError:
+            continue
+        if not np.isfinite(val):
+            continue
+        rows.append(dict(station=f"{la:.4f}_{lo:.4f}", lat=la, lon=lo, time=pd.Timestamp(tm).tz_localize(None) - pd.Timedelta(hours=1), gauge_mm=val))
+    res = pd.DataFrame(rows)
+    if not res.empty:
+        res = res[(np.hypot((res.lat - lat0) * 111.2, (res.lon - lon0) * 111.2 * np.cos(np.deg2rad(lat0))) <= radius_km)
+                  & (res.time >= start) & (res.time < end)]
+    res.to_csv(local, index=False)
+    return res
