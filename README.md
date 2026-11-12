@@ -13,7 +13,7 @@ Every algorithm is one class implementing one paper, with the same interface: it
 | polar-to-grid matching | `gate_latlon`, `to_mrms_grid` | 4/3-Earth beam geometry, cell averaging |  | implemented + notebook |
 | model freezing level | `hrrr_freezing_level` | HRRR analysis on AWS (byte-range GRIB2) |  | implemented + notebook |
 | continuous scores | `scores` | bias ratio, RMSE, correlation, MAE |  | implemented + notebook |
-| gauge matching | `match_gauges` | radar-gauge pairs in space and time |  | planned |
+| hourly gauges (HADS via IEM) + QC | `fetch_hads`, `basic_qc` | Qi et al. 2016 (MRMS gauge QC, in spirit) | [doi:10.1175/JHM-D-15-0188.1](https://doi.org/10.1175/JHM-D-15-0188.1) | implemented + notebook |
 | neighbourhood / categorical scores | - | use the `scores` library and pysteps (survey/04) |  | planned |
 
 ## Install

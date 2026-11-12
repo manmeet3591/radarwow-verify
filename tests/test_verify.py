@@ -23,3 +23,15 @@ def test_scores_perfect():
     x = np.linspace(0, 10, 50)
     sc = scores(x, x)
     assert np.isclose(sc["bias_ratio"], 1) and np.isclose(sc["corr"], 1) and sc["rmse"] == 0
+
+
+def test_gross_error_qc():
+    import pandas as pd
+
+    from radarwow.verify import basic_qc, gross_error_qc
+
+    t = pd.Timestamp("2022-05-05 07:00")
+    g = pd.DataFrame(dict(station=["A", "B", "C", "D", "E"], time=t, gauge_mm=[46.0, 4.0, 2.0, 8.0, 0.0], radar=[3.7, 4.2, 2.1, 8.5, 12.0]))
+    out = gross_error_qc(basic_qc(g, radar_col="radar"), radar_col="radar")
+    assert out.set_index("station").qc.to_dict() == {"A": "gross error vs bias-scaled radar", "B": "ok", "C": "ok", "D": "ok",
+                                                     "E": "gauge dry under radar rain"}
