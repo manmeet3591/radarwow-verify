@@ -14,7 +14,9 @@ Every algorithm is one class implementing one paper, with the same interface: it
 | model freezing level | `hrrr_freezing_level` | HRRR analysis on AWS (byte-range GRIB2) |  | implemented + notebook |
 | continuous scores | `scores` | bias ratio, RMSE, correlation, MAE |  | implemented + notebook |
 | hourly gauges, Finland (FMI open data) | `fetch_fmi` | FMI WFS PRA_PT1H_ACC |  | implemented + notebook |
-| 0 C height outside the US | `t2m_freezing_level` | ERA5 2 m temperature (Open-Meteo) / 6.5 K/km |  | implemented + notebook |
+| 0 C height outside the US | `pressure_level_freezing_level`, `t2m_freezing_level` | Open-Meteo pressure levels; 2 m temperature fallback |  | implemented + notebook |
+| hourly gauges, Colombia (IDEAM open data) | `fetch_ideam` | datos.gov.co s54a-sgyg, 10-min, local time (UTC-5) |  | implemented + notebook |
+| FMI operational accumulation | `fmi_accumulation_at` | FIN-ACRR1H on AWS |  | implemented + notebook |
 | hourly gauges (HADS via IEM) + QC | `fetch_hads`, `basic_qc`, `gross_error_qc` | Qi et al. 2016 (MRMS gauge QC, in spirit) | [doi:10.1175/JHM-D-15-0188.1](https://doi.org/10.1175/JHM-D-15-0188.1) | implemented + notebook |
 | neighbourhood / categorical scores | - | use the `scores` library and pysteps (survey/04) |  | planned |
 
@@ -32,6 +34,7 @@ pip install git+https://github.com/manmeet3591/radarwow-core git+https://github.
 - [`notebooks/04_kdax_20211024_blockage.ipynb`](notebooks/04_kdax_20211024_blockage.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/04_kdax_20211024_blockage.ipynb`
 - [`notebooks/05_adaptive_alpha.ipynb`](notebooks/05_adaptive_alpha.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/05_adaptive_alpha.ipynb`
 - [`notebooks/06_fianj_20230830_cband.ipynb`](notebooks/06_fianj_20230830_cband.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/06_fianj_20230830_cband.ipynb`
+- [`notebooks/07_tablazo_20230820_iris.ipynb`](notebooks/07_tablazo_20230820_iris.ipynb): open in Colab via `https://colab.research.google.com/github/manmeet3591/radarwow-verify/blob/main/notebooks/07_tablazo_20230820_iris.ipynb`
 
 ## Results
 
@@ -50,6 +53,7 @@ pip install git+https://github.com/manmeet3591/radarwow-core git+https://github.
 ![13_adaptive_alpha_bias](docs/figures/13_adaptive_alpha_bias.png)
 ![14_adaptive_alpha_maps_kdax](docs/figures/14_adaptive_alpha_maps_kdax.png)
 ![15_fianj_cband](docs/figures/15_fianj_cband.png)
+![16_tablazo](docs/figures/16_tablazo.png)
 
 ## Usage
 

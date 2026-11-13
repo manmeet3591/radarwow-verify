@@ -72,3 +72,34 @@ def t2m_freezing_level(time, lat, lon, cache_dir: str, lapse_k_per_km: float = 6
     temps = d["hourly"]["temperature_2m"]
     t2m = float(temps[min(t.hour, len(temps) - 1)])
     return float(d.get("elevation", 0.0)) + max(t2m, 0.0) / lapse_k_per_km * 1e3
+
+
+def pressure_level_freezing_level(time, lat, lon, cache_dir: str, fallback=True) -> float:
+    """0 C height (m MSL) interpolated between pressure levels (1000-300 hPa temperature and geopotential height) from
+    the Open-Meteo historical-forecast archive (free, no key; global models from 2022). This sees the free atmosphere,
+    unlike `t2m_freezing_level`, which on a mountain-top radar at night is far too low (Tablazo, Colombia: 2 m
+    temperature put 0 C 0.6-1.2 km above the antenna, the pressure levels 1.6 km). Where the archive has no data
+    (it returned none for Finland), falls back to `t2m_freezing_level` if ``fallback``."""
+    import json
+    import urllib.request
+
+    t = pd.Timestamp(time)
+    levels = [1000, 925, 850, 700, 600, 500, 400, 300]
+    os.makedirs(cache_dir, exist_ok=True)
+    local = os.path.join(cache_dir, f"openmeteo_pl_{lat:.2f}_{lon:.2f}_{t:%Y%m%d}.json")
+    if not os.path.exists(local):
+        var = ",".join(f"temperature_{p}hPa,geopotential_height_{p}hPa" for p in levels)
+        url = (f"https://historical-forecast-api.open-meteo.com/v1/forecast?latitude={lat:.3f}&longitude={lon:.3f}"
+               f"&start_date={t:%Y-%m-%d}&end_date={t:%Y-%m-%d}&hourly={var}")
+        with open(local, "w") as f:
+            f.write(urllib.request.urlopen(url, timeout=60).read().decode())
+    h = json.load(open(local)).get("hourly", {})
+    i = min(t.hour, len(h.get("time", [None])) - 1)
+    pts = [(h.get(f"geopotential_height_{p}hPa", [None])[i], h.get(f"temperature_{p}hPa", [None])[i]) for p in levels] if h else []
+    pts = [(z, tc) for z, tc in pts if z is not None and tc is not None]
+    for (z1, t1), (z2, t2) in zip(pts, pts[1:]):
+        if t1 >= 0 > t2:
+            return float(z1 + (z2 - z1) * t1 / (t1 - t2))
+    if fallback:
+        return t2m_freezing_level(time, lat, lon, cache_dir)
+    raise ValueError("no 0 C crossing in the pressure-level profile")

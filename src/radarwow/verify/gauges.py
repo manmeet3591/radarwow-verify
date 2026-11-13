@@ -196,3 +196,39 @@ def fmi_accumulation_at(lat, lon, hour_start, cache_dir: str):
     out = np.full(r.shape, np.nan)
     out[ok] = a[r[ok], c[ok]]
     return out
+
+
+def fetch_ideam(lat0: float, lon0: float, radius_km: float, start, end, cache_dir: str, utc_offset_h: float = 0.0) -> pd.DataFrame:
+    """Hourly gauge rain (mm) from IDEAM's 10-minute automatic stations (Colombia open data, datos.gov.co dataset
+    s54a-sgyg, no key), same columns as `fetch_hads`. An hour is kept only with all six 10-minute reports.
+
+    ``utc_offset_h``: hours to add to the stored time to get UTC (the dataset does not state its time zone; Colombia
+    is UTC-5, i.e. +5 if the times are local). ``time`` is the UTC start of the hour.
+    """
+    start, end = pd.Timestamp(start), pd.Timestamp(end)
+    os.makedirs(cache_dir, exist_ok=True)
+    local = os.path.join(cache_dir, f"ideam_{lat0:.2f}_{lon0:.2f}_{radius_km:.0f}_{start:%Y%m%d%H}_{end:%Y%m%d%H}_{utc_offset_h:+.0f}.csv")
+    if os.path.exists(local):
+        return pd.read_csv(local, parse_dates=["time"])
+    dlat = radius_km / 111.2
+    dlon = radius_km / (111.2 * math.cos(math.radians(lat0)))
+    s_loc, e_loc = start - pd.Timedelta(hours=utc_offset_h), end - pd.Timedelta(hours=utc_offset_h)
+    where = (f"fechaobservacion >= '{s_loc:%Y-%m-%dT%H:%M:%S}' AND fechaobservacion < '{e_loc:%Y-%m-%dT%H:%M:%S}' AND "
+             f"latitud::number between {lat0 - dlat:.3f} and {lat0 + dlat:.3f} AND longitud::number between {lon0 - dlon:.3f} and {lon0 + dlon:.3f}")
+    q = {"$select": "codigoestacion, fechaobservacion, valorobservado, latitud, longitud", "$where": where, "$limit": "200000"}
+    rows = json.loads(_get("https://www.datos.gov.co/resource/s54a-sgyg.json?" + urllib.parse.urlencode(q), pause_s=1.0))
+    if not rows:
+        res = pd.DataFrame(columns=["station", "lat", "lon", "time", "gauge_mm"])
+    else:
+        d = pd.DataFrame(rows)
+        d["v"] = pd.to_numeric(d["valorobservado"], errors="coerce")
+        d["t"] = pd.to_datetime(d["fechaobservacion"]) + pd.Timedelta(hours=utc_offset_h)
+        d = d.dropna(subset=["v"]).drop_duplicates(["codigoestacion", "t"])
+        d["hour"] = d["t"].dt.floor("h")
+        agg = d.groupby(["codigoestacion", "hour"]).agg(gauge_mm=("v", "sum"), n=("v", "size"), lat=("latitud", "first"), lon=("longitud", "first")).reset_index()
+        agg = agg[agg["n"] >= 6]
+        res = pd.DataFrame({"station": agg["codigoestacion"], "lat": agg["lat"].astype(float), "lon": agg["lon"].astype(float),
+                            "time": agg["hour"], "gauge_mm": agg["gauge_mm"]})
+        res = res[np.hypot((res.lat - lat0) * 111.2, (res.lon - lon0) * 111.2 * np.cos(np.deg2rad(lat0))) <= radius_km]
+    res.to_csv(local, index=False)
+    return res
