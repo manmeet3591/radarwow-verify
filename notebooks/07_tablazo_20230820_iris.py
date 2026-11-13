@@ -142,9 +142,18 @@ plt.show()
 #   melting layer detected the rain mask left 2-26 % of the disk. Pressure-level temperatures put 0 C at ~5.2 km
 #   (1.6 km above the antenna, typical for the tropics); valid area 48-58 %, gauges covered 189 of 217 gauge-hours.
 #   Outside the US the pipeline now uses `pressure_level_freezing_level`.
-# - **The estimate is still poor here:** 1.9 times the gauges, correlation 0.54. Likely contributors, not yet
-#   separated: terrain clutter seen by the 0 deg beam from a peak, partial blockage below 50 % (the dB correction is
-#   a NEXRAD rule), and 19 gauges in valleys sampling convective rain the beam sees ~1 km higher. Merging with these
-#   few gauges does not help (all methods worse than radar only in leave-one-out).
-# - **Lesson for IMD's Himalayan radars:** the format and assembly are solved; the 0 C level must come from the free
-#   atmosphere; clutter and blockage from a peak are the next problems to work on, with denser gauges.
+# - **Spurious phase, caught by a consistency test.** The first estimate was 1.9-2.2 times the gauges. The
+#   attenuation-based rate was the cause: on this radar PHIDP rises 40-110 deg through rain of only 25-35 dBZ, where
+#   rain that weak can produce a few degrees, and R(A) turned that into 11-16 mm/h where Z suggested ~2. Excluding
+#   clutter-filtered gates from the phase barely helped (2.16 -> 2.09). radarwow-attenuation now compares each ray's
+#   PHIDP rise with the rise its Z could produce (Marshall-Palmer, then the band's R(KDP) relation inverted): the
+#   median ratio is 1.2-1.6 on KTLX, KDAX and fianj, 18 on Tablazo. Rays above 10x get no attenuation correction and no
+#   R(A) (heavy convective rain, where Marshall-Palmer underestimates, reaches ~5x). On Tablazo 83 % of rays fail; the
+#   bias went from 1.88 to 0.61 and the error fell 43 % (MAE 1.27 -> 0.72 mm). The other radars changed by 0-3 %
+#   (one FMI radar hour by 43 %, improving the Finnish mosaic).
+# - **Still underestimating, and gauges do not help here:** 0.61 of the gauges, correlation 0.58. The beam passes
+#   ~1 km above valley gauges and misses shallow rain, and partial blockage below 50 % is only corrected with a NEXRAD
+#   rule. Merging with 19 valley gauges makes it worse (leave-one-out), unlike every other case.
+# - **Lesson for IMD's Himalayan radars:** the format and volume assembly are solved; the 0 C level must come from the
+#   free atmosphere; dual-pol phase must be checked against reflectivity before R(A) is trusted; low-level rain below
+#   the beam and dense gauges are the next problems.

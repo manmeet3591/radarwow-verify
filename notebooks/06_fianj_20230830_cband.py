@@ -163,12 +163,12 @@ display(Markdown("**Hourly totals at the gauges** (bias = estimate / gauge)\n\n"
 #   ODIM files a gate with SNR >= 15 dB now counts as signal whatever its SQI (radarwow-core). This raised the totals
 #   by about a quarter and the correlation with the gauges from 0.86 to 0.92.
 # - **The remaining shortfall is mostly real, and it changes from day to day.** FMI's own operational radar
-#   accumulation is just as short on 30 Aug (bias 0.48 against our 0.41). On the independent day, 28 Jul, ours is
-#   closer to the gauges than FMI's (0.75 vs 0.65; MAE 0.35 vs 0.48 mm; correlation 0.97 vs 0.95). The neighbours
+#   accumulation is just as short on 30 Aug (bias 0.48 against our 0.43). On the independent day, 28 Jul, ours is
+#   closer to the gauges than FMI's (0.76 vs 0.65; MAE 0.34 vs 0.48 mm; correlation 0.97 vs 0.95). The neighbours
 #   (radarwow-mosaic notebook 01) put Anjalankoski within 1-2.4 dB of the other radars, so calibration is not the
 #   cause; what remains is how reflectivity turns into rain for these events, plus the usual radar-gauge sampling.
 # - **No dual-pol rescue in this rain.** R(A) covers only about a quarter of the rain gates (paths too short in phase),
 #   and Bringi et al.'s per-ray alpha cannot be fitted (it needs >= 3 dB of path attenuation). The S-band adaptive
 #   alpha (notebook 05) does not apply at C band.
 # - **Gauges fix the amount.** KED (leave-one-out) brings the bias to 1.00 / 0.99 on both days; on 30 Aug it cuts the
-#   error by 58 % (MAE 0.98 -> 0.41 mm). On 28 Jul, with fewer gauges, it removes the bias but does not lower the error.
+#   error by 58 % (MAE 0.96 -> 0.40 mm). On 28 Jul, with fewer gauges, it removes the bias but does not lower the error.
