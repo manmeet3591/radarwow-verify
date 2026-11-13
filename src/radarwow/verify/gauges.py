@@ -166,3 +166,33 @@ def fetch_fmi(lat0: float, lon0: float, radius_km: float, start, end, cache_dir:
                   & (res.time >= start) & (res.time < end)]
     res.to_csv(local, index=False)
     return res
+
+
+def fmi_accumulation_at(lat, lon, hour_start, cache_dir: str):
+    """FMI's operational 1-hour radar accumulation (FIN-ACRR1H, 1 km, EPSG:3067; radar only, Z = 200 R^1.6 as
+    stated in the file) for the hour starting at ``hour_start``, sampled at (lat, lon) points. Open AWS bucket
+    ``fmi-opendata-radar-geotiff``; a peer to compare our C-band totals with."""
+    import boto3
+    import rasterio
+    from botocore import UNSIGNED
+    from botocore.config import Config
+    from pyproj import Transformer
+
+    te = pd.Timestamp(hour_start) + pd.Timedelta(hours=1)
+    key = f"{te:%Y/%m/%d}/FIN-ACRR-3067-1KM/{te:%Y%m%d%H%M}_FIN-ACRR1H-3067-1KM.tif"
+    os.makedirs(cache_dir, exist_ok=True)
+    local = os.path.join(cache_dir, os.path.basename(key))
+    if not os.path.exists(local):
+        s3 = boto3.client("s3", region_name="eu-west-1", config=Config(signature_version=UNSIGNED))
+        s3.download_file("fmi-opendata-radar-geotiff", key, local)
+    x, y = Transformer.from_crs("EPSG:4326", "EPSG:3067", always_xy=True).transform(np.asarray(lon), np.asarray(lat))
+    with rasterio.open(local) as src:
+        a = src.read(1).astype(float)
+        gain = float(src.tags().get("GDAL_METADATA", "").split('name="Gain">')[1].split("<")[0]) if "Gain" in src.tags().get("GDAL_METADATA", "") else 0.01
+        a = np.where(a == 65535, np.nan, a * gain)
+        r, c = rasterio.transform.rowcol(src.transform, x, y)
+    r, c = np.asarray(r), np.asarray(c)
+    ok = (r >= 0) & (r < a.shape[0]) & (c >= 0) & (c < a.shape[1])
+    out = np.full(r.shape, np.nan)
+    out[ok] = a[r[ok], c[ok]]
+    return out

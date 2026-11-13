@@ -125,20 +125,50 @@ s = pd.DataFrame([dict(method=m, **stats(d["est"].values, d["gauge"].values)) fo
 display(Markdown("**Leave-one-out at the gauges**\n\n" + s.round(2).to_markdown(index=False)))
 
 # %% [markdown]
+# ## 4. Against FMI's own product, and on a second day
+# FMI publishes its operational hourly radar accumulation (radar only, Z = 200 R^1.6). It is the fairest peer: if it
+# also falls short of the gauges, the shortfall belongs to the rain (or to radar-gauge sampling), not to our chain.
+# The second day, 28 Jul 2023, 08-12 UTC, was not used for any choice in this notebook.
+
+# %%
+from radarwow.verify import fmi_accumulation_at
+
+rows = []
+for day, (s_, e_) in {"30 Aug 2023": (START, END), "28 Jul 2023 (independent)": ("2023-07-28 08:00", "2023-07-28 12:00")}.items():
+    r_ = hourly_totals(SITE, s_, e_, n_tilts=3, blockage=True, source="fmi")
+    gd = fetch_fmi(lat0, lon0, 145, s_, e_, f"{CACHE}/gauges")
+    gd["gx"] = (gd["lon"] - lon0) * 111.2 * np.cos(np.deg2rad(lat0))
+    gd["gy"] = (gd["lat"] - lat0) * 111.2
+    gd["ours"], gd["fmi"] = np.nan, np.nan
+    for t_, idx in gd.groupby("time").groups.items():
+        gd.loc[idx, "ours"] = radar_at(r_["RAIN"].sel(time=t_).values, r_["x"].values, r_["y"].values, gd.loc[idx, "gx"].values, gd.loc[idx, "gy"].values)
+        gd.loc[idx, "fmi"] = fmi_accumulation_at(gd.loc[idx, "lat"].values, gd.loc[idx, "lon"].values, t_, f"{CACHE}/fmi_products")
+    gd = gd[np.isfinite(gd.ours) & np.isfinite(gd.fmi)]
+    for name in ["ours", "fmi"]:
+        rows.append(dict(day=day, estimate={"ours": "radar-wow chain", "fmi": "FMI operational (radar only)"}[name], **stats(gd[name].values, gd["gauge_mm"].values)))
+    ked, obs = [], []  # keep estimates and gauges in the same (grouped) order
+    for t_, gt in gd.groupby("time"):
+        ked += list(leave_one_out("KED", r_["RAIN"].sel(time=t_).values, r_["x"].values, r_["y"].values, gt.gx.values, gt.gy.values, gt.gauge_mm.values))
+        obs += list(gt.gauge_mm.values)
+    rows.append(dict(day=day, estimate="radar-wow + gauges (KED, leave-one-out)", **stats(np.array(ked), np.array(obs))))
+display(Markdown("**Hourly totals at the gauges** (bias = estimate / gauge)\n\n" + pd.DataFrame(rows).round(2).to_markdown(index=False)))
+
+# %% [markdown]
 # ## Takeaways
 # - **The chain runs unchanged on a European C-band radar.** Same code from raw files to hourly totals: the ODIM
-#   reader, the health check (it found stored noise and a 66 deg system PHIDP offset, both handled), QVP melting
-#   layer (bottom 2.7 km, consistent with the 2.4 km 0 C prior), VPR, blockage, hybrid scan and motion-following totals.
-# - **The pattern is right, the amount is not.** Radar and gauges correlate at 0.86-0.88, but the radar sees only about
-#   a third of the gauge rain (bias 0.32-0.36), with plain Marshall-Palmer as with the synthetic estimate.
-# - **It is a site-wide factor, not a range effect.** The deficit is about the same at every gauge, from 9 km to 140 km
-#   from the radar (radar 0.3-0.45 of gauge), and does not go away with a one-hour time shift or a 10 km location
-#   tolerance. Corrections that depend on range (VPR, blockage, attenuation along the path) cannot cause it. Two
-#   candidates remain: a reflectivity calibration about 5-8 dB low, or a wet radome (water on the antenna cover
-#   attenuates C band in every direction; the gauge 9 km from the radar shows it was raining at the site). R(A)
-#   agrees with R(Z) where both exist (ratio 0.98), which does not settle it: with the band-default alpha it covers
-#   only 28 % of rain gates. A neighbouring radar seeing the same rain (the mosaic stage) can separate the two.
-# - **Gauges fix the amount.** Even with only 21 gauges, conditional merging and KED cut the error at left-out gauges
-#   by about 42 % (MAE 1.08 -> 0.62 mm) and bring the bias to 1.02; a single mean-field factor gets 30 %.
-# - **Not available here:** a gauge-corrected national reference like MRMS, and the drop-size-adaptive alpha (an
-#   S-band method).
+#   reader, the health check (stored noise, a 66 deg system PHIDP offset, both handled), QVP melting layer, VPR,
+#   blockage, hybrid scan and motion-following totals.
+# - **A bug fixed on the way.** FMI's signal quality index (SQI) is low in rain (median 0.5-0.8 at 20-40 dBZ, with
+#   SNR 37-50 dB), and our signal mask required SQI > 0.4, dropping 10-15 % of rain gates (34 % at 10-20 dBZ). For
+#   ODIM files a gate with SNR >= 15 dB now counts as signal whatever its SQI (radarwow-core). This raised the totals
+#   by about a quarter and the correlation with the gauges from 0.86 to 0.92.
+# - **The remaining shortfall is mostly real, and it changes from day to day.** FMI's own operational radar
+#   accumulation is just as short on 30 Aug (bias 0.48 against our 0.41). On the independent day, 28 Jul, ours is
+#   closer to the gauges than FMI's (0.75 vs 0.65; MAE 0.35 vs 0.48 mm; correlation 0.97 vs 0.95). The neighbours
+#   (radarwow-mosaic notebook 01) put Anjalankoski within 1-2.4 dB of the other radars, so calibration is not the
+#   cause; what remains is how reflectivity turns into rain for these events, plus the usual radar-gauge sampling.
+# - **No dual-pol rescue in this rain.** R(A) covers only about a quarter of the rain gates (paths too short in phase),
+#   and Bringi et al.'s per-ray alpha cannot be fitted (it needs >= 3 dB of path attenuation). The S-band adaptive
+#   alpha (notebook 05) does not apply at C band.
+# - **Gauges fix the amount.** KED (leave-one-out) brings the bias to 1.00 / 0.99 on both days; on 30 Aug it cuts the
+#   error by 58 % (MAE 0.98 -> 0.41 mm). On 28 Jul, with fewer gauges, it removes the bias but does not lower the error.
